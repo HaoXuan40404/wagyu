@@ -1,15 +1,16 @@
-use crate::address::BitcoinAddress;
-use crate::format::BitcoinFormat;
-use crate::network::BitcoinNetwork;
-use crate::private_key::BitcoinPrivateKey;
+use crate::address::HdkAddress;
+use crate::format::HdkFormat;
+use crate::network::HdkNetwork;
+use crate::private_key::HdkPrivateKey;
 use wagyu_model::{Address, AddressError, PublicKey, PublicKeyError};
 
 use core::{fmt, fmt::Display, marker::PhantomData, str::FromStr};
 use secp256k1;
+use hex;
 
 /// Represents a Bitcoin public key
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BitcoinPublicKey<N: BitcoinNetwork> {
+pub struct HdkPublicKey<N: HdkNetwork> {
     /// The ECDSA public key
     public_key: secp256k1::PublicKey,
     /// If true, the public key is serialized in compressed form
@@ -18,10 +19,10 @@ pub struct BitcoinPublicKey<N: BitcoinNetwork> {
     _network: PhantomData<N>,
 }
 
-impl<N: BitcoinNetwork> PublicKey for BitcoinPublicKey<N> {
-    type Address = BitcoinAddress<N>;
-    type Format = BitcoinFormat;
-    type PrivateKey = BitcoinPrivateKey<N>;
+impl<N: HdkNetwork> PublicKey for HdkPublicKey<N> {
+    type Address = HdkAddress<N>;
+    type Format = HdkFormat;
+    type PrivateKey = HdkPrivateKey<N>;
 
     /// Returns the address corresponding to the given public key.
     fn from_private_key(private_key: &Self::PrivateKey) -> Self {
@@ -38,7 +39,7 @@ impl<N: BitcoinNetwork> PublicKey for BitcoinPublicKey<N> {
     }
 }
 
-impl<N: BitcoinNetwork> BitcoinPublicKey<N> {
+impl<N: HdkNetwork> HdkPublicKey<N> {
     /// Returns a public key given a secp256k1 public key.
     pub fn from_secp256k1_public_key(public_key: secp256k1::PublicKey, compressed: bool) -> Self {
         Self {
@@ -59,7 +60,7 @@ impl<N: BitcoinNetwork> BitcoinPublicKey<N> {
     }
 }
 
-impl<N: BitcoinNetwork> FromStr for BitcoinPublicKey<N> {
+impl<N: HdkNetwork> FromStr for HdkPublicKey<N> {
     type Err = PublicKeyError;
 
     fn from_str(public_key: &str) -> Result<Self, Self::Err> {
@@ -71,7 +72,7 @@ impl<N: BitcoinNetwork> FromStr for BitcoinPublicKey<N> {
     }
 }
 
-impl<N: BitcoinNetwork> Display for BitcoinPublicKey<N> {
+impl<N: HdkNetwork> Display for HdkPublicKey<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.compressed {
             for s in &self.public_key.serialize_compressed()[..] {
@@ -91,30 +92,30 @@ mod tests {
     use super::*;
     use crate::network::*;
 
-    fn test_from_private_key<N: BitcoinNetwork>(
-        expected_public_key: &BitcoinPublicKey<N>,
-        private_key: &BitcoinPrivateKey<N>,
+    fn test_from_private_key<N: HdkNetwork>(
+        expected_public_key: &HdkPublicKey<N>,
+        private_key: &HdkPrivateKey<N>,
     ) {
-        let public_key = BitcoinPublicKey::from_private_key(private_key);
+        let public_key = HdkPublicKey::from_private_key(private_key);
         assert_eq!(*expected_public_key, public_key);
     }
 
-    fn test_to_address<N: BitcoinNetwork>(
-        expected_address: &BitcoinAddress<N>,
-        expected_format: &BitcoinFormat,
-        public_key: &BitcoinPublicKey<N>,
+    fn test_to_address<N: HdkNetwork>(
+        expected_address: &HdkAddress<N>,
+        expected_format: &HdkFormat,
+        public_key: &HdkPublicKey<N>,
     ) {
         let address = public_key.to_address(expected_format).unwrap();
         assert_eq!(*expected_address, address);
     }
 
-    fn test_from_str<N: BitcoinNetwork>(
+    fn test_from_str<N: HdkNetwork>(
         expected_public_key: &str,
         expected_address: &str,
         expected_compressed: bool,
-        expected_format: &BitcoinFormat,
+        expected_format: &HdkFormat,
     ) {
-        let public_key = BitcoinPublicKey::<N>::from_str(expected_public_key).unwrap();
+        let public_key = HdkPublicKey::<N>::from_str(expected_public_key).unwrap();
         let address = public_key.to_address(expected_format).unwrap();
         assert_eq!(expected_public_key, public_key.to_string());
         assert_eq!(expected_compressed, public_key.compressed);
@@ -122,7 +123,7 @@ mod tests {
         assert_eq!(*expected_format, address.format());
     }
 
-    fn test_to_str<N: BitcoinNetwork>(expected_public_key: &str, public_key: &BitcoinPublicKey<N>) {
+    fn test_to_str<N: HdkNetwork>(expected_public_key: &str, public_key: &HdkPublicKey<N>) {
         assert_eq!(expected_public_key, public_key.to_string());
     }
 
@@ -161,8 +162,8 @@ mod tests {
         #[test]
         fn from_private_key() {
             KEYPAIRS.iter().for_each(|(private_key, public_key, _)| {
-                let public_key = BitcoinPublicKey::<N>::from_str(public_key).unwrap();
-                let private_key = BitcoinPrivateKey::<N>::from_str(&private_key).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(public_key).unwrap();
+                let private_key = HdkPrivateKey::<N>::from_str(&private_key).unwrap();
                 test_from_private_key(&public_key, &private_key);
             });
         }
@@ -170,23 +171,23 @@ mod tests {
         #[test]
         fn to_address() {
             KEYPAIRS.iter().for_each(|(_, public_key, address)| {
-                let address = BitcoinAddress::<N>::from_str(address).unwrap();
-                let public_key = BitcoinPublicKey::<N>::from_str(&public_key).unwrap();
-                test_to_address(&address, &BitcoinFormat::P2PKH, &public_key);
+                let address = HdkAddress::<N>::from_str(address).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(&public_key).unwrap();
+                test_to_address(&address, &HdkFormat::P2PKH, &public_key);
             });
         }
 
         #[test]
         fn from_str() {
             KEYPAIRS.iter().for_each(|(_, expected_public_key, expected_address)| {
-                test_from_str::<N>(expected_public_key, expected_address, true, &BitcoinFormat::P2PKH);
+                test_from_str::<N>(expected_public_key, expected_address, true, &HdkFormat::P2PKH);
             });
         }
 
         #[test]
         fn to_str() {
             KEYPAIRS.iter().for_each(|(_, expected_public_key, _)| {
-                let public_key = BitcoinPublicKey::<N>::from_str(expected_public_key).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(expected_public_key).unwrap();
                 test_to_str(expected_public_key, &public_key);
             });
         }
@@ -227,8 +228,8 @@ mod tests {
         #[test]
         fn from_private_key() {
             KEYPAIRS.iter().for_each(|(private_key, public_key, _)| {
-                let public_key = BitcoinPublicKey::<N>::from_str(public_key).unwrap();
-                let private_key = BitcoinPrivateKey::<N>::from_str(&private_key).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(public_key).unwrap();
+                let private_key = HdkPrivateKey::<N>::from_str(&private_key).unwrap();
                 test_from_private_key(&public_key, &private_key);
             });
         }
@@ -236,23 +237,23 @@ mod tests {
         #[test]
         fn to_address() {
             KEYPAIRS.iter().for_each(|(_, public_key, address)| {
-                let address = BitcoinAddress::<N>::from_str(address).unwrap();
-                let public_key = BitcoinPublicKey::<N>::from_str(&public_key).unwrap();
-                test_to_address(&address, &BitcoinFormat::P2PKH, &public_key);
+                let address = HdkAddress::<N>::from_str(address).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(&public_key).unwrap();
+                test_to_address(&address, &HdkFormat::P2PKH, &public_key);
             });
         }
 
         #[test]
         fn from_str() {
             KEYPAIRS.iter().for_each(|(_, expected_public_key, expected_address)| {
-                test_from_str::<N>(expected_public_key, expected_address, false, &BitcoinFormat::P2PKH);
+                test_from_str::<N>(expected_public_key, expected_address, false, &HdkFormat::P2PKH);
             });
         }
 
         #[test]
         fn to_str() {
             KEYPAIRS.iter().for_each(|(_, expected_public_key, _)| {
-                let public_key = BitcoinPublicKey::<N>::from_str(expected_public_key).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(expected_public_key).unwrap();
                 test_to_str(expected_public_key, &public_key);
             });
         }
@@ -293,8 +294,8 @@ mod tests {
         #[test]
         fn from_private_key() {
             KEYPAIRS.iter().for_each(|(private_key, public_key, _)| {
-                let public_key = BitcoinPublicKey::<N>::from_str(public_key).unwrap();
-                let private_key = BitcoinPrivateKey::<N>::from_str(&private_key).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(public_key).unwrap();
+                let private_key = HdkPrivateKey::<N>::from_str(&private_key).unwrap();
                 test_from_private_key(&public_key, &private_key);
             });
         }
@@ -302,23 +303,23 @@ mod tests {
         #[test]
         fn to_address() {
             KEYPAIRS.iter().for_each(|(_, public_key, address)| {
-                let address = BitcoinAddress::<N>::from_str(address).unwrap();
-                let public_key = BitcoinPublicKey::<N>::from_str(&public_key).unwrap();
-                test_to_address(&address, &BitcoinFormat::P2PKH, &public_key);
+                let address = HdkAddress::<N>::from_str(address).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(&public_key).unwrap();
+                test_to_address(&address, &HdkFormat::P2PKH, &public_key);
             });
         }
 
         #[test]
         fn from_str() {
             KEYPAIRS.iter().for_each(|(_, expected_public_key, expected_address)| {
-                test_from_str::<N>(expected_public_key, expected_address, true, &BitcoinFormat::P2PKH);
+                test_from_str::<N>(expected_public_key, expected_address, true, &HdkFormat::P2PKH);
             });
         }
 
         #[test]
         fn to_str() {
             KEYPAIRS.iter().for_each(|(_, expected_public_key, _)| {
-                let public_key = BitcoinPublicKey::<N>::from_str(expected_public_key).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(expected_public_key).unwrap();
                 test_to_str(expected_public_key, &public_key);
             });
         }
@@ -359,8 +360,8 @@ mod tests {
         #[test]
         fn from_private_key() {
             KEYPAIRS.iter().for_each(|(private_key, public_key, _)| {
-                let public_key = BitcoinPublicKey::<N>::from_str(public_key).unwrap();
-                let private_key = BitcoinPrivateKey::<N>::from_str(&private_key).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(public_key).unwrap();
+                let private_key = HdkPrivateKey::<N>::from_str(&private_key).unwrap();
                 test_from_private_key(&public_key, &private_key);
             });
         }
@@ -368,23 +369,23 @@ mod tests {
         #[test]
         fn to_address() {
             KEYPAIRS.iter().for_each(|(_, public_key, address)| {
-                let address = BitcoinAddress::<N>::from_str(address).unwrap();
-                let public_key = BitcoinPublicKey::<N>::from_str(&public_key).unwrap();
-                test_to_address(&address, &BitcoinFormat::P2PKH, &public_key);
+                let address = HdkAddress::<N>::from_str(address).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(&public_key).unwrap();
+                test_to_address(&address, &HdkFormat::P2PKH, &public_key);
             });
         }
 
         #[test]
         fn from_str() {
             KEYPAIRS.iter().for_each(|(_, expected_public_key, expected_address)| {
-                test_from_str::<N>(expected_public_key, expected_address, false, &BitcoinFormat::P2PKH);
+                test_from_str::<N>(expected_public_key, expected_address, false, &HdkFormat::P2PKH);
             });
         }
 
         #[test]
         fn to_str() {
             KEYPAIRS.iter().for_each(|(_, expected_public_key, _)| {
-                let public_key = BitcoinPublicKey::<N>::from_str(expected_public_key).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(expected_public_key).unwrap();
                 test_to_str(expected_public_key, &public_key);
             });
         }
@@ -425,8 +426,8 @@ mod tests {
         #[test]
         fn from_private_key() {
             KEYPAIRS.iter().for_each(|(private_key, public_key, _)| {
-                let public_key = BitcoinPublicKey::<N>::from_str(public_key).unwrap();
-                let private_key = BitcoinPrivateKey::<N>::from_str(&private_key).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(public_key).unwrap();
+                let private_key = HdkPrivateKey::<N>::from_str(&private_key).unwrap();
                 test_from_private_key(&public_key, &private_key);
             });
         }
@@ -434,23 +435,23 @@ mod tests {
         #[test]
         fn to_address() {
             KEYPAIRS.iter().for_each(|(_, public_key, address)| {
-                let address = BitcoinAddress::<N>::from_str(address).unwrap();
-                let public_key = BitcoinPublicKey::<N>::from_str(&public_key).unwrap();
-                test_to_address(&address, &BitcoinFormat::P2SH_P2WPKH, &public_key);
+                let address = HdkAddress::<N>::from_str(address).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(&public_key).unwrap();
+                test_to_address(&address, &HdkFormat::P2SH_P2WPKH, &public_key);
             });
         }
 
         #[test]
         fn from_str() {
             KEYPAIRS.iter().for_each(|(_, expected_public_key, expected_address)| {
-                test_from_str::<N>(expected_public_key, expected_address, true, &BitcoinFormat::P2SH_P2WPKH);
+                test_from_str::<N>(expected_public_key, expected_address, true, &HdkFormat::P2SH_P2WPKH);
             });
         }
 
         #[test]
         fn to_str() {
             KEYPAIRS.iter().for_each(|(_, expected_public_key, _)| {
-                let public_key = BitcoinPublicKey::<N>::from_str(expected_public_key).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(expected_public_key).unwrap();
                 test_to_str(expected_public_key, &public_key);
             });
         }
@@ -491,8 +492,8 @@ mod tests {
         #[test]
         fn from_private_key() {
             KEYPAIRS.iter().for_each(|(private_key, public_key, _)| {
-                let public_key = BitcoinPublicKey::<N>::from_str(public_key).unwrap();
-                let private_key = BitcoinPrivateKey::<N>::from_str(&private_key).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(public_key).unwrap();
+                let private_key = HdkPrivateKey::<N>::from_str(&private_key).unwrap();
                 test_from_private_key(&public_key, &private_key);
             });
         }
@@ -500,23 +501,23 @@ mod tests {
         #[test]
         fn to_address() {
             KEYPAIRS.iter().for_each(|(_, public_key, address)| {
-                let address = BitcoinAddress::<N>::from_str(address).unwrap();
-                let public_key = BitcoinPublicKey::<N>::from_str(&public_key).unwrap();
-                test_to_address(&address, &BitcoinFormat::P2SH_P2WPKH, &public_key);
+                let address = HdkAddress::<N>::from_str(address).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(&public_key).unwrap();
+                test_to_address(&address, &HdkFormat::P2SH_P2WPKH, &public_key);
             });
         }
 
         #[test]
         fn from_str() {
             KEYPAIRS.iter().for_each(|(_, expected_public_key, expected_address)| {
-                test_from_str::<N>(expected_public_key, expected_address, true, &BitcoinFormat::P2SH_P2WPKH);
+                test_from_str::<N>(expected_public_key, expected_address, true, &HdkFormat::P2SH_P2WPKH);
             });
         }
 
         #[test]
         fn to_str() {
             KEYPAIRS.iter().for_each(|(_, expected_public_key, _)| {
-                let public_key = BitcoinPublicKey::<N>::from_str(expected_public_key).unwrap();
+                let public_key = HdkPublicKey::<N>::from_str(expected_public_key).unwrap();
                 test_to_str(expected_public_key, &public_key);
             });
         }
@@ -529,20 +530,20 @@ mod tests {
         // Invalid public key length
 
         let public_key = "0";
-        assert!(BitcoinPublicKey::<N>::from_str(public_key).is_err());
+        assert!(HdkPublicKey::<N>::from_str(public_key).is_err());
 
         let public_key = "039ed714bf521e96e3f3609b74da898e44";
-        assert!(BitcoinPublicKey::<N>::from_str(public_key).is_err());
+        assert!(HdkPublicKey::<N>::from_str(public_key).is_err());
 
         let public_key = "039ed714bf521e96e3f3609b74da898e44d0fb64ba68c62c57852470ffc28e3db";
-        assert!(BitcoinPublicKey::<N>::from_str(public_key).is_err());
+        assert!(HdkPublicKey::<N>::from_str(public_key).is_err());
 
         let public_key =
             "039ed714bf521e96e3f3609b74da898e44d0fb64ba68c62c57852470ffc28e3db5039ed714bf521e96e3f3609b74da898e44";
-        assert!(BitcoinPublicKey::<N>::from_str(public_key).is_err());
+        assert!(HdkPublicKey::<N>::from_str(public_key).is_err());
 
         let public_key = "039ed714bf521e96e3f3609b74da898e44d0fb64ba68c62c57852470ffc28e3db5039ed714bf521e96e3f3609b74da898e44d0fb64ba68c62c57852470ffc28e3db5";
-        assert!(BitcoinPublicKey::<N>::from_str(public_key).is_err());
+        assert!(HdkPublicKey::<N>::from_str(public_key).is_err());
     }
 
     #[test]
@@ -552,19 +553,19 @@ mod tests {
         // Invalid public key length
 
         let public_key = "0";
-        assert!(BitcoinPublicKey::<N>::from_str(public_key).is_err());
+        assert!(HdkPublicKey::<N>::from_str(public_key).is_err());
 
         let public_key = "02468791fee1444df3a6e786e2f9da79198";
-        assert!(BitcoinPublicKey::<N>::from_str(public_key).is_err());
+        assert!(HdkPublicKey::<N>::from_str(public_key).is_err());
 
         let public_key = "02468791fee1444df3a6e786e2f9da79198f8902387e1fa5a2c051950c4df51ab";
-        assert!(BitcoinPublicKey::<N>::from_str(public_key).is_err());
+        assert!(HdkPublicKey::<N>::from_str(public_key).is_err());
 
         let public_key =
             "02468791fee1444df3a6e786e2f9da79198f8902387e1fa5a2c051950c4df51ab402468791fee1444df3a6e786e2f9da79198";
-        assert!(BitcoinPublicKey::<N>::from_str(public_key).is_err());
+        assert!(HdkPublicKey::<N>::from_str(public_key).is_err());
 
         let public_key = "02468791fee1444df3a6e786e2f9da79198f8902387e1fa5a2c051950c4df51ab402468791fee1444df3a6e786e2f9da79198f8902387e1fa5a2c051950c4df51ab4";
-        assert!(BitcoinPublicKey::<N>::from_str(public_key).is_err());
+        assert!(HdkPublicKey::<N>::from_str(public_key).is_err());
     }
 }

@@ -1,5 +1,5 @@
-use crate::format::BitcoinFormat;
-use crate::network::BitcoinNetwork;
+use crate::format::HdkFormat;
+use crate::network::HdkNetwork;
 use wagyu_model::{
     AddressError, ChildIndex, ExtendedPrivateKeyError, ExtendedPublicKeyError, Network, NetworkError, PrivateKeyError,
 };
@@ -15,16 +15,16 @@ impl Network for Testnet {
     const NAME: &'static str = "testnet";
 }
 
-impl BitcoinNetwork for Testnet {
+impl HdkNetwork for Testnet {
     const HD_COIN_TYPE: ChildIndex = ChildIndex::Hardened(1);
 
     /// Returns the address prefix of the given network.
-    fn to_address_prefix(format: &BitcoinFormat) -> Vec<u8> {
+    fn to_address_prefix(format: &HdkFormat) -> Vec<u8> {
         match format {
-            BitcoinFormat::P2PKH => vec![0x6F],
-            BitcoinFormat::P2WSH => vec![0x00],
-            BitcoinFormat::P2SH_P2WPKH => vec![0xC4],
-            BitcoinFormat::Bech32 => vec![0x74, 0x62],
+            HdkFormat::P2PKH => vec![0x6F],
+            HdkFormat::P2WSH => vec![0x00],
+            HdkFormat::P2SH_P2WPKH => vec![0xC4],
+            HdkFormat::Bech32 => vec![0x74, 0x62],
         }
     }
 
@@ -51,10 +51,10 @@ impl BitcoinNetwork for Testnet {
 
     /// Returns the extended private key version bytes of the given network.
     /// https://github.com/satoshilabs/slips/blob/master/slip-0132.md
-    fn to_extended_private_key_version_bytes(format: &BitcoinFormat) -> Result<Vec<u8>, ExtendedPrivateKeyError> {
+    fn to_extended_private_key_version_bytes(format: &HdkFormat) -> Result<Vec<u8>, ExtendedPrivateKeyError> {
         match format {
-            BitcoinFormat::P2PKH => Ok(vec![0x04, 0x35, 0x83, 0x94]), // tpriv
-            BitcoinFormat::P2SH_P2WPKH => Ok(vec![0x04, 0x4A, 0x4E, 0x28]), // upriv
+            HdkFormat::P2PKH => Ok(vec![0x04, 0x35, 0x83, 0x94]), // tpriv
+            HdkFormat::P2SH_P2WPKH => Ok(vec![0x04, 0x4A, 0x4E, 0x28]), // upriv
             _ => Err(ExtendedPrivateKeyError::UnsupportedFormat(format.to_string())),
         }
     }
@@ -70,10 +70,10 @@ impl BitcoinNetwork for Testnet {
 
     /// Returns the extended public key version bytes of the given network.
     /// https://github.com/satoshilabs/slips/blob/master/slip-0132.md
-    fn to_extended_public_key_version_bytes(format: &BitcoinFormat) -> Result<Vec<u8>, ExtendedPublicKeyError> {
+    fn to_extended_public_key_version_bytes(format: &HdkFormat) -> Result<Vec<u8>, ExtendedPublicKeyError> {
         match format {
-            BitcoinFormat::P2PKH => Ok(vec![0x04, 0x35, 0x87, 0xCF]), // tpub
-            BitcoinFormat::P2SH_P2WPKH => Ok(vec![0x04, 0x4A, 0x52, 0x62]), // upub
+            HdkFormat::P2PKH => Ok(vec![0x04, 0x35, 0x87, 0xCF]), // tpub
+            HdkFormat::P2SH_P2WPKH => Ok(vec![0x04, 0x4A, 0x52, 0x62]), // upub
             _ => Err(ExtendedPublicKeyError::UnsupportedFormat(format.to_string())),
         }
     }

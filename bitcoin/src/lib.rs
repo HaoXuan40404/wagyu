@@ -1,6 +1,6 @@
-//! # Bitcoin
+//! # hdk
 //!
-//! A library for generating Bitcoin wallets.
+//! A library for generating hdk wallets.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(unused_extern_crates, dead_code)]

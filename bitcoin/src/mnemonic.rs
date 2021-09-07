@@ -1,11 +1,11 @@
-use crate::address::BitcoinAddress;
-use crate::extended_private_key::BitcoinExtendedPrivateKey;
-use crate::extended_public_key::BitcoinExtendedPublicKey;
-use crate::format::BitcoinFormat;
-use crate::network::BitcoinNetwork;
-use crate::private_key::BitcoinPrivateKey;
-use crate::public_key::BitcoinPublicKey;
-use crate::wordlist::BitcoinWordlist;
+use crate::address::HdkAddress;
+use crate::extended_private_key::HdkExtendedPrivateKey;
+use crate::extended_public_key::HdkExtendedPublicKey;
+use crate::format::HdkFormat;
+use crate::network::HdkNetwork;
+use crate::private_key::HdkPrivateKey;
+use crate::public_key::HdkPublicKey;
+use crate::wordlist::HdkWordlist;
 use wagyu_model::{ExtendedPrivateKey, Mnemonic, MnemonicCount, MnemonicError, MnemonicExtended};
 use wagyu_model::no_std::*;
 
@@ -21,7 +21,7 @@ const PBKDF2_BYTES: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// Represents a Bitcoin mnemonic
-pub struct BitcoinMnemonic<N: BitcoinNetwork, W: BitcoinWordlist> {
+pub struct HdkMnemonic<N: HdkNetwork, W: HdkWordlist> {
     /// Initial entropy in multiples of 32 bits
     entropy: Vec<u8>,
     /// PhantomData
@@ -30,7 +30,7 @@ pub struct BitcoinMnemonic<N: BitcoinNetwork, W: BitcoinWordlist> {
     _wordlist: PhantomData<W>,
 }
 
-impl<N: BitcoinNetwork, W: BitcoinWordlist> MnemonicCount for BitcoinMnemonic<N, W> {
+impl<N: HdkNetwork, W: HdkWordlist> MnemonicCount for HdkMnemonic<N, W> {
     /// Returns a new mnemonic given the word count.
     fn new_with_count<R: Rng>(rng: &mut R, word_count: u8) -> Result<Self, MnemonicError> {
         let length: usize = match word_count {
@@ -52,11 +52,11 @@ impl<N: BitcoinNetwork, W: BitcoinWordlist> MnemonicCount for BitcoinMnemonic<N,
     }
 }
 
-impl<N: BitcoinNetwork, W: BitcoinWordlist> Mnemonic for BitcoinMnemonic<N, W> {
-    type Address = BitcoinAddress<N>;
-    type Format = BitcoinFormat;
-    type PrivateKey = BitcoinPrivateKey<N>;
-    type PublicKey = BitcoinPublicKey<N>;
+impl<N: HdkNetwork, W: HdkWordlist> Mnemonic for HdkMnemonic<N, W> {
+    type Address = HdkAddress<N>;
+    type Format = HdkFormat;
+    type PrivateKey = HdkPrivateKey<N>;
+    type PublicKey = HdkPublicKey<N>;
 
     /// Returns a new mnemonic.
     fn new<R: Rng>(rng: &mut R) -> Result<Self, MnemonicError> {
@@ -162,15 +162,15 @@ impl<N: BitcoinNetwork, W: BitcoinWordlist> Mnemonic for BitcoinMnemonic<N, W> {
     }
 }
 
-impl<N: BitcoinNetwork, W: BitcoinWordlist> MnemonicExtended for BitcoinMnemonic<N, W> {
-    type ExtendedPrivateKey = BitcoinExtendedPrivateKey<N>;
-    type ExtendedPublicKey = BitcoinExtendedPublicKey<N>;
+impl<N: HdkNetwork, W: HdkWordlist> MnemonicExtended for HdkMnemonic<N, W> {
+    type ExtendedPrivateKey = HdkExtendedPrivateKey<N>;
+    type ExtendedPublicKey = HdkExtendedPublicKey<N>;
 
     /// Returns the extended private key of the corresponding mnemonic.
     fn to_extended_private_key(&self, password: Option<&str>) -> Result<Self::ExtendedPrivateKey, MnemonicError> {
         Ok(Self::ExtendedPrivateKey::new_master(
             self.to_seed(password)?.as_slice(),
-            &BitcoinFormat::P2PKH,
+            &HdkFormat::P2PKH,
         )?)
     }
 
@@ -180,7 +180,7 @@ impl<N: BitcoinNetwork, W: BitcoinWordlist> MnemonicExtended for BitcoinMnemonic
     }
 }
 
-impl<N: BitcoinNetwork, W: BitcoinWordlist> BitcoinMnemonic<N, W> {
+impl<N: HdkNetwork, W: HdkWordlist> HdkMnemonic<N, W> {
     /// Compares the given phrase against the phrase extracted from its entropy.
     pub fn verify_phrase(phrase: &str) -> bool {
         Self::from_phrase(phrase).is_ok()
@@ -195,7 +195,7 @@ impl<N: BitcoinNetwork, W: BitcoinWordlist> BitcoinMnemonic<N, W> {
     }
 }
 
-impl<N: BitcoinNetwork, W: BitcoinWordlist> FromStr for BitcoinMnemonic<N, W> {
+impl<N: HdkNetwork, W: HdkWordlist> FromStr for HdkMnemonic<N, W> {
     type Err = MnemonicError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -203,7 +203,7 @@ impl<N: BitcoinNetwork, W: BitcoinWordlist> FromStr for BitcoinMnemonic<N, W> {
     }
 }
 
-impl<N: BitcoinNetwork, W: BitcoinWordlist> fmt::Display for BitcoinMnemonic<N, W> {
+impl<N: HdkNetwork, W: HdkWordlist> fmt::Display for HdkMnemonic<N, W> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -226,20 +226,20 @@ mod tests {
     use rand::SeedableRng;
     use rand_xorshift::XorShiftRng;
 
-    fn test_new_with_count<N: BitcoinNetwork, W: BitcoinWordlist>(word_count: u8) {
+    fn test_new_with_count<N: HdkNetwork, W: HdkWordlist>(word_count: u8) {
         let rng = &mut XorShiftRng::seed_from_u64(1231275789u64);
-        let mnemonic = BitcoinMnemonic::<N, W>::new_with_count(rng, word_count).unwrap();
+        let mnemonic = HdkMnemonic::<N, W>::new_with_count(rng, word_count).unwrap();
         test_from_phrase::<N, W>(&mnemonic.entropy, &mnemonic.to_phrase().unwrap());
     }
 
-    fn test_from_phrase<N: BitcoinNetwork, W: BitcoinWordlist>(expected_entropy: &Vec<u8>, phrase: &str) {
-        let mnemonic = BitcoinMnemonic::<N, W>::from_phrase(phrase).unwrap();
+    fn test_from_phrase<N: HdkNetwork, W: HdkWordlist>(expected_entropy: &Vec<u8>, phrase: &str) {
+        let mnemonic = HdkMnemonic::<N, W>::from_phrase(phrase).unwrap();
         assert_eq!(&expected_entropy[..], &mnemonic.entropy[..]);
         assert_eq!(phrase, mnemonic.to_phrase().unwrap());
     }
 
-    fn test_to_phrase<N: BitcoinNetwork, W: BitcoinWordlist>(expected_phrase: &str, entropy: &Vec<u8>) {
-        let mnemonic = BitcoinMnemonic::<N, W> {
+    fn test_to_phrase<N: HdkNetwork, W: HdkWordlist>(expected_phrase: &str, entropy: &Vec<u8>) {
+        let mnemonic = HdkMnemonic::<N, W> {
             entropy: entropy.clone(),
             _network: PhantomData,
             _wordlist: PhantomData,
@@ -248,24 +248,24 @@ mod tests {
         assert_eq!(expected_phrase, mnemonic.to_phrase().unwrap());
     }
 
-    fn test_verify_phrase<N: BitcoinNetwork, W: BitcoinWordlist>(phrase: &str) {
-        assert!(BitcoinMnemonic::<N, W>::verify_phrase(phrase));
+    fn test_verify_phrase<N: HdkNetwork, W: HdkWordlist>(phrase: &str) {
+        assert!(HdkMnemonic::<N, W>::verify_phrase(phrase));
     }
 
-    fn test_to_seed<N: BitcoinNetwork, W: BitcoinWordlist>(
+    fn test_to_seed<N: HdkNetwork, W: HdkWordlist>(
         expected_seed: &str,
         password: Option<&str>,
-        mnemonic: BitcoinMnemonic<N, W>,
+        mnemonic: HdkMnemonic<N, W>,
     ) {
         assert_eq!(expected_seed, &hex::encode(mnemonic.to_seed(password).unwrap()))
     }
 
-    fn test_to_extended_private_key<N: BitcoinNetwork, W: BitcoinWordlist>(
+    fn test_to_extended_private_key<N: HdkNetwork, W: HdkWordlist>(
         expected_extended_private_key: &str,
         password: Option<&str>,
         phrase: &str,
     ) {
-        let mnemonic = BitcoinMnemonic::<N, W>::from_phrase(phrase).unwrap();
+        let mnemonic = HdkMnemonic::<N, W>::from_phrase(phrase).unwrap();
         let extended_private_key = mnemonic.to_extended_private_key(password).unwrap();
         assert_eq!(expected_extended_private_key, extended_private_key.to_string());
     }
@@ -475,7 +475,7 @@ mod tests {
         fn to_seed() {
             KEYPAIRS.iter().for_each(|(entropy_str, _, expected_seed, _)| {
                 let entropy: Vec<u8> = Vec::from(hex::decode(entropy_str).unwrap());
-                let mnemonic = BitcoinMnemonic::<N, W> {
+                let mnemonic = HdkMnemonic::<N, W> {
                     entropy,
                     _network: PhantomData,
                     _wordlist: PhantomData,
@@ -488,7 +488,7 @@ mod tests {
         fn to_seed_no_password() {
             let (entropy_str, _, _, _) = KEYPAIRS[0];
             let entropy: Vec<u8> = Vec::from(hex::decode(entropy_str).unwrap());
-            let mnemonic = BitcoinMnemonic::<N, W> {
+            let mnemonic = HdkMnemonic::<N, W> {
                 entropy,
                 _network: PhantomData,
                 _wordlist: PhantomData,
@@ -524,19 +524,19 @@ mod tests {
         #[should_panic(expected = "InvalidWordCount(11)")]
         fn new_with_count_invalid_word_count() {
             let rng = &mut XorShiftRng::seed_from_u64(1231275789u64);
-            let _mnemonic = BitcoinMnemonic::<N, W>::new_with_count(rng, INVALID_WORD_COUNT).unwrap();
+            let _mnemonic = HdkMnemonic::<N, W>::new_with_count(rng, INVALID_WORD_COUNT).unwrap();
         }
 
         #[test]
         #[should_panic(expected = "InvalidWord(\"abandoz\")")]
         fn from_phrase_invalid_word() {
-            let _mnemonic = BitcoinMnemonic::<N, W>::from_phrase(INVALID_PHRASE_WORD).unwrap();
+            let _mnemonic = HdkMnemonic::<N, W>::from_phrase(INVALID_PHRASE_WORD).unwrap();
         }
 
         #[test]
         #[should_panic(expected = "InvalidWordCount(13)")]
         fn from_phrase_invalid_length() {
-            let _mnemonic = BitcoinMnemonic::<N, W>::from_phrase(INVALID_PHRASE_LENGTH).unwrap();
+            let _mnemonic = HdkMnemonic::<N, W>::from_phrase(INVALID_PHRASE_LENGTH).unwrap();
         }
 
         #[test]
@@ -544,12 +544,12 @@ mod tests {
             expected = "InvalidPhrase(\"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon\")"
         )]
         fn from_phrase_invalid_checksum() {
-            let _mnemonic = BitcoinMnemonic::<N, W>::from_phrase(INVALID_PHRASE_CHECKSUM).unwrap();
+            let _mnemonic = HdkMnemonic::<N, W>::from_phrase(INVALID_PHRASE_CHECKSUM).unwrap();
         }
 
         #[test]
         fn verify_invalid_phrase() {
-            assert!(!BitcoinMnemonic::<N, W>::verify_phrase(INVALID_PHRASE_LENGTH));
+            assert!(!HdkMnemonic::<N, W>::verify_phrase(INVALID_PHRASE_LENGTH));
         }
     }
 }

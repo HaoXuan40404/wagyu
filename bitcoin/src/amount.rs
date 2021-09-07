@@ -12,7 +12,7 @@ const MAX_COINS: i64 = 21_000_000 * COIN;
 
 /// Represents the amount of Bitcoin in satoshis
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
-pub struct BitcoinAmount(pub i64);
+pub struct HdkAmount(pub i64);
 
 pub enum Denomination {
     // sat
@@ -26,7 +26,7 @@ pub enum Denomination {
     // dBTC
     DeciBit,
     // BTC
-    Bitcoin,
+    Hdk,
 }
 
 impl Denomination {
@@ -38,7 +38,7 @@ impl Denomination {
             Denomination::MilliBit => 5,
             Denomination::CentiBit => 6,
             Denomination::DeciBit => 7,
-            Denomination::Bitcoin => 8,
+            Denomination::Hdk => 8,
         }
     }
 }
@@ -54,21 +54,21 @@ impl fmt::Display for Denomination {
                 Denomination::MilliBit => "mBTC",
                 Denomination::CentiBit => "cBTC",
                 Denomination::DeciBit => "dBTC",
-                Denomination::Bitcoin => "BTC",
+                Denomination::Hdk => "BTC",
             }
         )
     }
 }
 
-impl Amount for BitcoinAmount {}
+impl Amount for HdkAmount {}
 
-impl BitcoinAmount {
+impl HdkAmount {
     /// The zero amount.
-    pub const ZERO: BitcoinAmount = BitcoinAmount(0);
+    pub const ZERO: HdkAmount = HdkAmount(0);
     /// Exactly one satoshi.
-    pub const ONE_SAT: BitcoinAmount = BitcoinAmount(1);
+    pub const ONE_SAT: HdkAmount = HdkAmount(1);
     /// Exactly one bitcoin.
-    pub const ONE_BTC: BitcoinAmount = BitcoinAmount(COIN);
+    pub const ONE_BTC: HdkAmount = HdkAmount(COIN);
 
     pub fn from_satoshi(satoshis: i64) -> Result<Self, AmountError> {
         if -MAX_COINS <= satoshis && satoshis <= MAX_COINS {
@@ -106,7 +106,7 @@ impl BitcoinAmount {
     }
 
     pub fn from_btc(btc_value: i64) -> Result<Self, AmountError> {
-        let satoshis = btc_value * 10_i64.pow(Denomination::Bitcoin.precision());
+        let satoshis = btc_value * 10_i64.pow(Denomination::Hdk.precision());
 
         Self::from_satoshi(satoshis)
     }
@@ -115,12 +115,12 @@ impl BitcoinAmount {
         Self::from_satoshi(self.0 + b.0)
     }
 
-    pub fn sub(self, b: BitcoinAmount) -> Result<Self, AmountError> {
+    pub fn sub(self, b: HdkAmount) -> Result<Self, AmountError> {
         Self::from_satoshi(self.0 - b.0)
     }
 }
 
-impl fmt::Display for BitcoinAmount {
+impl fmt::Display for HdkAmount {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0.to_string())
     }
@@ -130,48 +130,48 @@ impl fmt::Display for BitcoinAmount {
 mod tests {
     use super::*;
 
-    fn test_from_satoshi(sat_value: i64, expected_amount: BitcoinAmount) {
-        let amount = BitcoinAmount::from_satoshi(sat_value).unwrap();
+    fn test_from_satoshi(sat_value: i64, expected_amount: HdkAmount) {
+        let amount = HdkAmount::from_satoshi(sat_value).unwrap();
         assert_eq!(expected_amount, amount)
     }
 
-    fn test_from_ubtc(ubtc_value: i64, expected_amount: BitcoinAmount) {
-        let amount = BitcoinAmount::from_ubtc(ubtc_value).unwrap();
+    fn test_from_ubtc(ubtc_value: i64, expected_amount: HdkAmount) {
+        let amount = HdkAmount::from_ubtc(ubtc_value).unwrap();
         assert_eq!(expected_amount, amount)
     }
 
-    fn test_from_mbtc(mbtc_value: i64, expected_amount: BitcoinAmount) {
-        let amount = BitcoinAmount::from_mbtc(mbtc_value).unwrap();
+    fn test_from_mbtc(mbtc_value: i64, expected_amount: HdkAmount) {
+        let amount = HdkAmount::from_mbtc(mbtc_value).unwrap();
         assert_eq!(expected_amount, amount)
     }
 
-    fn test_from_cbtc(cbtc_value: i64, expected_amount: BitcoinAmount) {
-        let amount = BitcoinAmount::from_cbtc(cbtc_value).unwrap();
+    fn test_from_cbtc(cbtc_value: i64, expected_amount: HdkAmount) {
+        let amount = HdkAmount::from_cbtc(cbtc_value).unwrap();
         assert_eq!(expected_amount, amount)
     }
 
-    fn test_from_dbtc(dbtc_value: i64, expected_amount: BitcoinAmount) {
-        let amount = BitcoinAmount::from_dbtc(dbtc_value).unwrap();
+    fn test_from_dbtc(dbtc_value: i64, expected_amount: HdkAmount) {
+        let amount = HdkAmount::from_dbtc(dbtc_value).unwrap();
         assert_eq!(expected_amount, amount)
     }
 
-    fn test_from_btc(btc_value: i64, expected_amount: BitcoinAmount) {
-        let amount = BitcoinAmount::from_btc(btc_value).unwrap();
+    fn test_from_btc(btc_value: i64, expected_amount: HdkAmount) {
+        let amount = HdkAmount::from_btc(btc_value).unwrap();
         assert_eq!(expected_amount, amount)
     }
 
     fn test_addition(a: &i64, b: &i64, result: &i64) {
-        let a = BitcoinAmount::from_satoshi(*a).unwrap();
-        let b = BitcoinAmount::from_satoshi(*b).unwrap();
-        let result = BitcoinAmount::from_satoshi(*result).unwrap();
+        let a = HdkAmount::from_satoshi(*a).unwrap();
+        let b = HdkAmount::from_satoshi(*b).unwrap();
+        let result = HdkAmount::from_satoshi(*result).unwrap();
 
         assert_eq!(result, a.add(b).unwrap());
     }
 
     fn test_subtraction(a: &i64, b: &i64, result: &i64) {
-        let a = BitcoinAmount::from_satoshi(*a).unwrap();
-        let b = BitcoinAmount::from_satoshi(*b).unwrap();
-        let result = BitcoinAmount::from_satoshi(*result).unwrap();
+        let a = HdkAmount::from_satoshi(*a).unwrap();
+        let b = HdkAmount::from_satoshi(*b).unwrap();
+        let result = HdkAmount::from_satoshi(*result).unwrap();
 
         assert_eq!(result, a.sub(b).unwrap());
     }
@@ -182,7 +182,7 @@ mod tests {
         milli_bit: i64,
         centi_bit: i64,
         deci_bit: i64,
-        bitcoin: i64,
+        hdk: i64,
     }
 
     mod valid_conversions {
@@ -195,7 +195,7 @@ mod tests {
                 milli_bit: 0,
                 centi_bit: 0,
                 deci_bit: 0,
-                bitcoin: 0,
+                hdk: 0,
             },
             AmountDenominationTestCase {
                 satoshi: 100000000,
@@ -203,7 +203,7 @@ mod tests {
                 milli_bit: 1000,
                 centi_bit: 100,
                 deci_bit: 10,
-                bitcoin: 1,
+                hdk: 1,
             },
             AmountDenominationTestCase {
                 satoshi: 100000000000,
@@ -211,7 +211,7 @@ mod tests {
                 milli_bit: 1000000,
                 centi_bit: 100000,
                 deci_bit: 10000,
-                bitcoin: 1000,
+                hdk: 1000,
             },
             AmountDenominationTestCase {
                 satoshi: 123456700000000,
@@ -219,7 +219,7 @@ mod tests {
                 milli_bit: 1234567000,
                 centi_bit: 123456700,
                 deci_bit: 12345670,
-                bitcoin: 1234567,
+                hdk: 1234567,
             },
             AmountDenominationTestCase {
                 satoshi: 2100000000000000,
@@ -227,7 +227,7 @@ mod tests {
                 milli_bit: 21000000000,
                 centi_bit: 2100000000,
                 deci_bit: 210000000,
-                bitcoin: 21000000,
+                hdk: 21000000,
             },
         ];
 
@@ -235,42 +235,42 @@ mod tests {
         fn test_satoshi_conversion() {
             TEST_AMOUNTS
                 .iter()
-                .for_each(|amounts| test_from_satoshi(amounts.satoshi, BitcoinAmount(amounts.satoshi)));
+                .for_each(|amounts| test_from_satoshi(amounts.satoshi, HdkAmount(amounts.satoshi)));
         }
 
         #[test]
         fn test_ubtc_conversion() {
             TEST_AMOUNTS
                 .iter()
-                .for_each(|amounts| test_from_ubtc(amounts.micro_bit, BitcoinAmount(amounts.satoshi)));
+                .for_each(|amounts| test_from_ubtc(amounts.micro_bit, HdkAmount(amounts.satoshi)));
         }
 
         #[test]
         fn test_mbtc_conversion() {
             TEST_AMOUNTS
                 .iter()
-                .for_each(|amounts| test_from_mbtc(amounts.milli_bit, BitcoinAmount(amounts.satoshi)));
+                .for_each(|amounts| test_from_mbtc(amounts.milli_bit, HdkAmount(amounts.satoshi)));
         }
 
         #[test]
         fn test_cbtc_conversion() {
             TEST_AMOUNTS
                 .iter()
-                .for_each(|amounts| test_from_cbtc(amounts.centi_bit, BitcoinAmount(amounts.satoshi)));
+                .for_each(|amounts| test_from_cbtc(amounts.centi_bit, HdkAmount(amounts.satoshi)));
         }
 
         #[test]
         fn test_dbtc_conversion() {
             TEST_AMOUNTS
                 .iter()
-                .for_each(|amounts| test_from_dbtc(amounts.deci_bit, BitcoinAmount(amounts.satoshi)));
+                .for_each(|amounts| test_from_dbtc(amounts.deci_bit, HdkAmount(amounts.satoshi)));
         }
 
         #[test]
         fn test_btc_conversion() {
             TEST_AMOUNTS
                 .iter()
-                .for_each(|amounts| test_from_btc(amounts.bitcoin, BitcoinAmount(amounts.satoshi)));
+                .for_each(|amounts| test_from_btc(amounts.hdk, HdkAmount(amounts.satoshi)));
         }
     }
 
@@ -311,7 +311,7 @@ mod tests {
                     milli_bit: 21000001000,
                     centi_bit: 2100000100,
                     deci_bit: 210000010,
-                    bitcoin: 21000001,
+                    hdk: 21000001,
                 },
                 AmountDenominationTestCase {
                     satoshi: -2100000100000000,
@@ -319,7 +319,7 @@ mod tests {
                     milli_bit: -21000001000,
                     centi_bit: -2100000100,
                     deci_bit: -210000010,
-                    bitcoin: -21000001,
+                    hdk: -21000001,
                 },
                 AmountDenominationTestCase {
                     satoshi: 1000000000000000000,
@@ -327,7 +327,7 @@ mod tests {
                     milli_bit: 10000000000000,
                     centi_bit: 1000000000000,
                     deci_bit: 100000000000,
-                    bitcoin: 10000000000,
+                    hdk: 10000000000,
                 },
                 AmountDenominationTestCase {
                     satoshi: -1000000000000000000,
@@ -335,7 +335,7 @@ mod tests {
                     milli_bit: -10000000000000,
                     centi_bit: -1000000000000,
                     deci_bit: -100000000000,
-                    bitcoin: -10000000000,
+                    hdk: -10000000000,
                 },
             ];
 
@@ -344,7 +344,7 @@ mod tests {
             fn test_invalid_satoshi_conversion() {
                 INVALID_TEST_AMOUNTS
                     .iter()
-                    .for_each(|amounts| test_from_satoshi(amounts.satoshi, BitcoinAmount(amounts.satoshi)));
+                    .for_each(|amounts| test_from_satoshi(amounts.satoshi, HdkAmount(amounts.satoshi)));
             }
 
             #[should_panic(expected = "AmountOutOfBounds")]
@@ -352,7 +352,7 @@ mod tests {
             fn test_invalid_ubtc_conversion() {
                 INVALID_TEST_AMOUNTS
                     .iter()
-                    .for_each(|amounts| test_from_ubtc(amounts.micro_bit, BitcoinAmount(amounts.satoshi)));
+                    .for_each(|amounts| test_from_ubtc(amounts.micro_bit, HdkAmount(amounts.satoshi)));
             }
 
             #[should_panic(expected = "AmountOutOfBounds")]
@@ -360,7 +360,7 @@ mod tests {
             fn test_invalid_mbtc_conversion() {
                 INVALID_TEST_AMOUNTS
                     .iter()
-                    .for_each(|amounts| test_from_mbtc(amounts.milli_bit, BitcoinAmount(amounts.satoshi)));
+                    .for_each(|amounts| test_from_mbtc(amounts.milli_bit, HdkAmount(amounts.satoshi)));
             }
 
             #[should_panic(expected = "AmountOutOfBounds")]
@@ -368,7 +368,7 @@ mod tests {
             fn test_invalid_cbtc_conversion() {
                 INVALID_TEST_AMOUNTS
                     .iter()
-                    .for_each(|amounts| test_from_cbtc(amounts.centi_bit, BitcoinAmount(amounts.satoshi)));
+                    .for_each(|amounts| test_from_cbtc(amounts.centi_bit, HdkAmount(amounts.satoshi)));
             }
 
             #[should_panic(expected = "AmountOutOfBounds")]
@@ -376,7 +376,7 @@ mod tests {
             fn test_invalid_dbtc_conversion() {
                 INVALID_TEST_AMOUNTS
                     .iter()
-                    .for_each(|amounts| test_from_dbtc(amounts.deci_bit, BitcoinAmount(amounts.satoshi)));
+                    .for_each(|amounts| test_from_dbtc(amounts.deci_bit, HdkAmount(amounts.satoshi)));
             }
 
             #[should_panic(expected = "AmountOutOfBounds")]
@@ -384,7 +384,7 @@ mod tests {
             fn test_invalid_btc_conversion() {
                 INVALID_TEST_AMOUNTS
                     .iter()
-                    .for_each(|amounts| test_from_btc(amounts.bitcoin, BitcoinAmount(amounts.satoshi)));
+                    .for_each(|amounts| test_from_btc(amounts.hdk, HdkAmount(amounts.satoshi)));
             }
         }
 
@@ -398,7 +398,7 @@ mod tests {
                     milli_bit: 1,
                     centi_bit: 1,
                     deci_bit: 1,
-                    bitcoin: 1,
+                    hdk: 1,
                 },
                 AmountDenominationTestCase {
                     satoshi: 1,
@@ -406,7 +406,7 @@ mod tests {
                     milli_bit: 100,
                     centi_bit: 1000,
                     deci_bit: 1000000,
-                    bitcoin: 100000000,
+                    hdk: 100000000,
                 },
                 AmountDenominationTestCase {
                     satoshi: 123456789,
@@ -414,7 +414,7 @@ mod tests {
                     milli_bit: 1234,
                     centi_bit: 123,
                     deci_bit: 12,
-                    bitcoin: 1,
+                    hdk: 1,
                 },
                 AmountDenominationTestCase {
                     satoshi: 2100000000000000,
@@ -422,7 +422,7 @@ mod tests {
                     milli_bit: 21000000000,
                     centi_bit: 2100000000,
                     deci_bit: 210000000,
-                    bitcoin: 20999999,
+                    hdk: 20999999,
                 },
             ];
 
@@ -431,7 +431,7 @@ mod tests {
             fn test_invalid_ubtc_conversion() {
                 INVALID_TEST_AMOUNTS
                     .iter()
-                    .for_each(|amounts| test_from_ubtc(amounts.micro_bit, BitcoinAmount(amounts.satoshi)));
+                    .for_each(|amounts| test_from_ubtc(amounts.micro_bit, HdkAmount(amounts.satoshi)));
             }
 
             #[should_panic]
@@ -439,7 +439,7 @@ mod tests {
             fn test_invalid_mbtc_conversion() {
                 INVALID_TEST_AMOUNTS
                     .iter()
-                    .for_each(|amounts| test_from_mbtc(amounts.milli_bit, BitcoinAmount(amounts.satoshi)));
+                    .for_each(|amounts| test_from_mbtc(amounts.milli_bit, HdkAmount(amounts.satoshi)));
             }
 
             #[should_panic]
@@ -447,7 +447,7 @@ mod tests {
             fn test_invalid_cbtc_conversion() {
                 INVALID_TEST_AMOUNTS
                     .iter()
-                    .for_each(|amounts| test_from_cbtc(amounts.centi_bit, BitcoinAmount(amounts.satoshi)));
+                    .for_each(|amounts| test_from_cbtc(amounts.centi_bit, HdkAmount(amounts.satoshi)));
             }
 
             #[should_panic]
@@ -455,7 +455,7 @@ mod tests {
             fn test_invalid_dbtc_conversion() {
                 INVALID_TEST_AMOUNTS
                     .iter()
-                    .for_each(|amounts| test_from_dbtc(amounts.deci_bit, BitcoinAmount(amounts.satoshi)));
+                    .for_each(|amounts| test_from_dbtc(amounts.deci_bit, HdkAmount(amounts.satoshi)));
             }
 
             #[should_panic]
@@ -463,7 +463,7 @@ mod tests {
             fn test_invalid_btc_conversion() {
                 INVALID_TEST_AMOUNTS
                     .iter()
-                    .for_each(|amounts| test_from_btc(amounts.bitcoin, BitcoinAmount(amounts.satoshi)));
+                    .for_each(|amounts| test_from_btc(amounts.hdk, HdkAmount(amounts.satoshi)));
             }
         }
 

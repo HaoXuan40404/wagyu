@@ -1,10 +1,10 @@
-use crate::address::BitcoinAddress;
-use crate::derivation_path::BitcoinDerivationPath;
-use crate::extended_public_key::BitcoinExtendedPublicKey;
-use crate::format::BitcoinFormat;
-use crate::network::BitcoinNetwork;
-use crate::private_key::BitcoinPrivateKey;
-use crate::public_key::BitcoinPublicKey;
+use crate::address::HdkAddress;
+use crate::derivation_path::HdkDerivationPath;
+use crate::extended_public_key::HdkExtendedPublicKey;
+use crate::format::HdkFormat;
+use crate::network::HdkNetwork;
+use crate::private_key::HdkPrivateKey;
+use crate::public_key::HdkPublicKey;
 use wagyu_model::{
     crypto::{checksum, hash160},
     AddressError, ChildIndex, DerivationPath, ExtendedPrivateKey, ExtendedPrivateKeyError, ExtendedPublicKey,
@@ -21,9 +21,9 @@ type HmacSha512 = Hmac<Sha512>;
 
 /// Represents a Bitcoin extended private key
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BitcoinExtendedPrivateKey<N: BitcoinNetwork> {
+pub struct HdkExtendedPrivateKey<N: HdkNetwork> {
     /// The address format
-    pub(super) format: BitcoinFormat,
+    pub(super) format: HdkFormat,
     /// The depth of key derivation, e.g. 0x00 for master nodes, 0x01 for level-1 derived keys, ...
     pub(super) depth: u8,
     /// The first 32 bits of the key identifier (hash160(ECDSA_public_key))
@@ -33,16 +33,16 @@ pub struct BitcoinExtendedPrivateKey<N: BitcoinNetwork> {
     /// The chain code for this extended private key
     pub(super) chain_code: [u8; 32],
     /// The Bitcoin private key
-    private_key: BitcoinPrivateKey<N>,
+    private_key: HdkPrivateKey<N>,
 }
 
-impl<N: BitcoinNetwork> ExtendedPrivateKey for BitcoinExtendedPrivateKey<N> {
-    type Address = BitcoinAddress<N>;
-    type DerivationPath = BitcoinDerivationPath<N>;
-    type ExtendedPublicKey = BitcoinExtendedPublicKey<N>;
-    type Format = BitcoinFormat;
-    type PrivateKey = BitcoinPrivateKey<N>;
-    type PublicKey = BitcoinPublicKey<N>;
+impl<N: HdkNetwork> ExtendedPrivateKey for HdkExtendedPrivateKey<N> {
+    type Address = HdkAddress<N>;
+    type DerivationPath = HdkDerivationPath<N>;
+    type ExtendedPublicKey = HdkExtendedPublicKey<N>;
+    type Format = HdkFormat;
+    type PrivateKey = HdkPrivateKey<N>;
+    type PublicKey = HdkPublicKey<N>;
 
     /// Returns a new Bitcoin extended private key.
     fn new(seed: &[u8], format: &Self::Format, path: &Self::DerivationPath) -> Result<Self, ExtendedPrivateKeyError> {
@@ -109,7 +109,7 @@ impl<N: BitcoinNetwork> ExtendedPrivateKey for BitcoinExtendedPrivateKey<N> {
             parent_fingerprint.copy_from_slice(&hash160(public_key)[0..4]);
 
             let format = match path {
-                BitcoinDerivationPath::BIP49(_) => BitcoinFormat::P2SH_P2WPKH,
+                HdkDerivationPath::BIP49(_) => HdkFormat::P2SH_P2WPKH,
                 _ => extended_private_key.format.clone(),
             };
 
@@ -147,14 +147,14 @@ impl<N: BitcoinNetwork> ExtendedPrivateKey for BitcoinExtendedPrivateKey<N> {
     }
 }
 
-impl<N: BitcoinNetwork> BitcoinExtendedPrivateKey<N> {
+impl<N: HdkNetwork> HdkExtendedPrivateKey<N> {
     /// Returns the format of the Bitcoin extended private key.
-    pub fn format(&self) -> BitcoinFormat {
+    pub fn format(&self) -> HdkFormat {
         self.format.clone()
     }
 }
 
-impl<N: BitcoinNetwork> FromStr for BitcoinExtendedPrivateKey<N> {
+impl<N: HdkNetwork> FromStr for HdkExtendedPrivateKey<N> {
     type Err = ExtendedPrivateKeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -165,7 +165,7 @@ impl<N: BitcoinNetwork> FromStr for BitcoinExtendedPrivateKey<N> {
 
         // Check that the version bytes correspond with the correct network.
         let _ = N::from_extended_private_key_version_bytes(&data[0..4])?;
-        let format = BitcoinFormat::from_extended_private_key_version_bytes(&data[0..4])?;
+        let format = HdkFormat::from_extended_private_key_version_bytes(&data[0..4])?;
 
         let depth = data[4];
 
@@ -177,7 +177,7 @@ impl<N: BitcoinNetwork> FromStr for BitcoinExtendedPrivateKey<N> {
         let mut chain_code = [0u8; 32];
         chain_code.copy_from_slice(&data[13..45]);
 
-        let private_key = BitcoinPrivateKey::from_secp256k1_secret_key(&SecretKey::parse_slice(&data[46..78])?, true);
+        let private_key = HdkPrivateKey::from_secp256k1_secret_key(&SecretKey::parse_slice(&data[46..78])?, true);
 
         let expected = &data[78..82];
         let checksum = &checksum(&data[0..78])[0..4];
@@ -198,7 +198,7 @@ impl<N: BitcoinNetwork> FromStr for BitcoinExtendedPrivateKey<N> {
     }
 }
 
-impl<N: BitcoinNetwork> Display for BitcoinExtendedPrivateKey<N> {
+impl<N: HdkNetwork> Display for HdkExtendedPrivateKey<N> {
     /// BIP32 serialization format
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -229,18 +229,18 @@ mod tests {
     use core::convert::TryInto;
     use hex;
 
-    fn test_new<N: BitcoinNetwork>(
+    fn test_new<N: HdkNetwork>(
         expected_extended_private_key: &str,
         expected_parent_fingerprint: &str,
         expected_child_index: u32,
         expected_chain_code: &str,
         expected_secret_key: &str,
         seed: &str,
-        format: &BitcoinFormat,
-        path: &BitcoinDerivationPath<N>,
+        format: &HdkFormat,
+        path: &HdkDerivationPath<N>,
     ) {
         let extended_private_key =
-            BitcoinExtendedPrivateKey::<N>::new(&hex::decode(seed).unwrap(), format, path).unwrap();
+            HdkExtendedPrivateKey::<N>::new(&hex::decode(seed).unwrap(), format, path).unwrap();
         assert_eq!(expected_extended_private_key, extended_private_key.to_string());
         assert_eq!(
             expected_parent_fingerprint,
@@ -255,18 +255,18 @@ mod tests {
     }
 
     // Check: (extended_private_key1 -> extended_private_key2) == (expected_extended_private_key2)
-    fn test_derive<N: BitcoinNetwork>(
+    fn test_derive<N: HdkNetwork>(
         expected_extended_private_key1: &str,
         expected_extended_private_key2: &str,
         expected_child_index2: u32,
     ) {
         let path = vec![ChildIndex::from(expected_child_index2)].try_into().unwrap();
 
-        let extended_private_key1 = BitcoinExtendedPrivateKey::<N>::from_str(expected_extended_private_key1).unwrap();
+        let extended_private_key1 = HdkExtendedPrivateKey::<N>::from_str(expected_extended_private_key1).unwrap();
         let extended_private_key2 = extended_private_key1.derive(&path).unwrap();
 
         let expected_extended_private_key2 =
-            BitcoinExtendedPrivateKey::<N>::from_str(&expected_extended_private_key2).unwrap();
+            HdkExtendedPrivateKey::<N>::from_str(&expected_extended_private_key2).unwrap();
 
         assert_eq!(expected_extended_private_key2, extended_private_key2);
         assert_eq!(
@@ -288,26 +288,26 @@ mod tests {
         );
     }
 
-    fn test_to_extended_public_key<N: BitcoinNetwork>(
+    fn test_to_extended_public_key<N: HdkNetwork>(
         expected_extended_public_key: &str,
         seed: &str,
-        format: &BitcoinFormat,
-        path: &BitcoinDerivationPath<N>,
+        format: &HdkFormat,
+        path: &HdkDerivationPath<N>,
     ) {
         let extended_private_key =
-            BitcoinExtendedPrivateKey::<N>::new(&hex::decode(seed).unwrap(), format, path).unwrap();
+            HdkExtendedPrivateKey::<N>::new(&hex::decode(seed).unwrap(), format, path).unwrap();
         let extended_public_key = extended_private_key.to_extended_public_key();
         assert_eq!(expected_extended_public_key, extended_public_key.to_string());
     }
 
-    fn test_from_str<N: BitcoinNetwork>(
+    fn test_from_str<N: HdkNetwork>(
         expected_extended_private_key: &str,
         expected_parent_fingerprint: &str,
         expected_child_index: u32,
         expected_chain_code: &str,
         expected_secret_key: &str,
     ) {
-        let extended_private_key = BitcoinExtendedPrivateKey::<N>::from_str(expected_extended_private_key).unwrap();
+        let extended_private_key = HdkExtendedPrivateKey::<N>::from_str(expected_extended_private_key).unwrap();
         assert_eq!(expected_extended_private_key, extended_private_key.to_string());
         assert_eq!(
             expected_parent_fingerprint,
@@ -321,8 +321,8 @@ mod tests {
         );
     }
 
-    fn test_to_string<N: BitcoinNetwork>(expected_extended_private_key: &str) {
-        let extended_private_key = BitcoinExtendedPrivateKey::<N>::from_str(expected_extended_private_key).unwrap();
+    fn test_to_string<N: HdkNetwork>(expected_extended_private_key: &str) {
+        let extended_private_key = HdkExtendedPrivateKey::<N>::from_str(expected_extended_private_key).unwrap();
         assert_eq!(expected_extended_private_key, extended_private_key.to_string());
     }
 
@@ -616,8 +616,8 @@ mod tests {
                         chain_code,
                         secret_key,
                         seed,
-                        &BitcoinFormat::P2PKH,
-                        &BitcoinDerivationPath::from_str(path).unwrap(),
+                        &HdkFormat::P2PKH,
+                        &HdkDerivationPath::from_str(path).unwrap(),
                     );
                 },
             );
@@ -644,8 +644,8 @@ mod tests {
                     test_to_extended_public_key::<N>(
                         expected_public_key,
                         seed,
-                        &BitcoinFormat::P2PKH,
-                        &BitcoinDerivationPath::from_str(path).unwrap(),
+                        &HdkFormat::P2PKH,
+                        &HdkDerivationPath::from_str(path).unwrap(),
                     );
                 });
         }
@@ -775,8 +775,8 @@ mod tests {
                         chain_code,
                         secret_key,
                         seed,
-                        &BitcoinFormat::P2SH_P2WPKH,
-                        &BitcoinDerivationPath::from_str(path).unwrap(),
+                        &HdkFormat::P2SH_P2WPKH,
+                        &HdkDerivationPath::from_str(path).unwrap(),
                     );
                 },
             );
@@ -803,8 +803,8 @@ mod tests {
                     test_to_extended_public_key::<N>(
                         expected_public_key,
                         seed,
-                        &BitcoinFormat::P2SH_P2WPKH,
-                        &BitcoinDerivationPath::from_str(path).unwrap(),
+                        &HdkFormat::P2SH_P2WPKH,
+                        &HdkDerivationPath::from_str(path).unwrap(),
                     );
                 });
         }
@@ -846,25 +846,25 @@ mod tests {
         #[should_panic(expected = "Crate(\"libsecp256k1\", \"InvalidSecretKey\")")]
         fn from_str_invalid_secret_key() {
             let _result =
-                BitcoinExtendedPrivateKey::<N>::from_str(INVALID_EXTENDED_PRIVATE_KEY_SECP256K1_SECRET_KEY).unwrap();
+                HdkExtendedPrivateKey::<N>::from_str(INVALID_EXTENDED_PRIVATE_KEY_SECP256K1_SECRET_KEY).unwrap();
         }
 
         #[test]
         #[should_panic(expected = "InvalidVersionBytes([4, 136, 173, 227])")]
         fn from_str_invalid_version() {
-            let _result = BitcoinExtendedPrivateKey::<N>::from_str(INVALID_EXTENDED_PRIVATE_KEY_NETWORK).unwrap();
+            let _result = HdkExtendedPrivateKey::<N>::from_str(INVALID_EXTENDED_PRIVATE_KEY_NETWORK).unwrap();
         }
 
         #[test]
         #[should_panic(expected = "InvalidChecksum(\"6vCfku\", \"6vCfkt\")")]
         fn from_str_invalid_checksum() {
-            let _result = BitcoinExtendedPrivateKey::<N>::from_str(INVALID_EXTENDED_PRIVATE_KEY_CHECKSUM).unwrap();
+            let _result = HdkExtendedPrivateKey::<N>::from_str(INVALID_EXTENDED_PRIVATE_KEY_CHECKSUM).unwrap();
         }
 
         #[test]
         #[should_panic(expected = "InvalidByteLength(81)")]
         fn from_str_short() {
-            let _result = BitcoinExtendedPrivateKey::<N>::from_str(&VALID_EXTENDED_PRIVATE_KEY[1..]).unwrap();
+            let _result = HdkExtendedPrivateKey::<N>::from_str(&VALID_EXTENDED_PRIVATE_KEY[1..]).unwrap();
         }
 
         #[test]
@@ -872,7 +872,7 @@ mod tests {
         fn from_str_long() {
             let mut string = String::from(VALID_EXTENDED_PRIVATE_KEY);
             string.push('a');
-            let _result = BitcoinExtendedPrivateKey::<N>::from_str(&string).unwrap();
+            let _result = HdkExtendedPrivateKey::<N>::from_str(&string).unwrap();
         }
     }
 }

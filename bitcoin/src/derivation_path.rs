@@ -1,4 +1,4 @@
-use crate::network::BitcoinNetwork;
+use crate::network::HdkNetwork;
 use wagyu_model::derivation_path::{ChildIndex, DerivationPath, DerivationPathError};
 use wagyu_model::no_std::*;
 
@@ -6,7 +6,7 @@ use core::{convert::TryFrom, fmt, marker::PhantomData, str::FromStr};
 
 /// Represents a Bitcoin derivation path
 #[derive(Clone, PartialEq, Eq)]
-pub enum BitcoinDerivationPath<N: BitcoinNetwork> {
+pub enum HdkDerivationPath<N: HdkNetwork> {
     /// BIP32 - Pay-to-Pubkey Hash
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
     BIP32(Vec<ChildIndex>, PhantomData<N>),
@@ -18,15 +18,15 @@ pub enum BitcoinDerivationPath<N: BitcoinNetwork> {
     BIP49([ChildIndex; 3]),
 }
 
-impl<N: BitcoinNetwork> DerivationPath for BitcoinDerivationPath<N> {
+impl<N: HdkNetwork> DerivationPath for HdkDerivationPath<N> {
     /// Returns a child index vector given the derivation path.
     fn to_vec(&self) -> Result<Vec<ChildIndex>, DerivationPathError> {
         match self {
-            BitcoinDerivationPath::BIP32(path, _) => match path.len() < 256 {
+            HdkDerivationPath::BIP32(path, _) => match path.len() < 256 {
                 true => Ok(path.clone()),
                 false => Err(DerivationPathError::ExpectedBIP32Path),
             },
-            BitcoinDerivationPath::BIP44(path) => {
+            HdkDerivationPath::BIP44(path) => {
                 match path[0].is_hardened() && path[1].is_normal() && path[2].is_normal() {
                     true => Ok(vec![
                         ChildIndex::Hardened(44),
@@ -38,7 +38,7 @@ impl<N: BitcoinNetwork> DerivationPath for BitcoinDerivationPath<N> {
                     false => Err(DerivationPathError::ExpectedBIP44Path),
                 }
             }
-            BitcoinDerivationPath::BIP49(path) => {
+            HdkDerivationPath::BIP49(path) => {
                 match path[0].is_hardened() && path[1].is_normal() && path[2].is_normal() {
                     true => Ok(vec![
                         ChildIndex::Hardened(49),
@@ -63,7 +63,7 @@ impl<N: BitcoinNetwork> DerivationPath for BitcoinDerivationPath<N> {
                 && path[3].is_normal()
                 && path[4].is_normal()
             {
-                return Ok(BitcoinDerivationPath::BIP44([path[2], path[3], path[4]]));
+                return Ok(HdkDerivationPath::BIP44([path[2], path[3], path[4]]));
             }
             // Path length 5 - BIP49
             if path[0] == ChildIndex::Hardened(49)
@@ -72,19 +72,19 @@ impl<N: BitcoinNetwork> DerivationPath for BitcoinDerivationPath<N> {
                 && path[3].is_normal()
                 && path[4].is_normal()
             {
-                return Ok(BitcoinDerivationPath::BIP49([path[2], path[3], path[4]]));
+                return Ok(HdkDerivationPath::BIP49([path[2], path[3], path[4]]));
             }
             // Path length 5 - BIP32 (non-BIP44 & non-BIP49 compliant)
-            return Ok(BitcoinDerivationPath::BIP32(path.to_vec(), PhantomData));
+            return Ok(HdkDerivationPath::BIP32(path.to_vec(), PhantomData));
         } else {
             // Path length 0 - BIP32 root key
             // Path length i - BIP32
-            Ok(BitcoinDerivationPath::BIP32(path.to_vec(), PhantomData))
+            Ok(HdkDerivationPath::BIP32(path.to_vec(), PhantomData))
         }
     }
 }
 
-impl<N: BitcoinNetwork> FromStr for BitcoinDerivationPath<N> {
+impl<N: HdkNetwork> FromStr for HdkDerivationPath<N> {
     type Err = DerivationPathError;
 
     fn from_str(path: &str) -> Result<Self, Self::Err> {
@@ -99,7 +99,7 @@ impl<N: BitcoinNetwork> FromStr for BitcoinDerivationPath<N> {
     }
 }
 
-impl<N: BitcoinNetwork> TryFrom<Vec<ChildIndex>> for BitcoinDerivationPath<N> {
+impl<N: HdkNetwork> TryFrom<Vec<ChildIndex>> for HdkDerivationPath<N> {
     type Error = DerivationPathError;
 
     fn try_from(path: Vec<ChildIndex>) -> Result<Self, Self::Error> {
@@ -107,7 +107,7 @@ impl<N: BitcoinNetwork> TryFrom<Vec<ChildIndex>> for BitcoinDerivationPath<N> {
     }
 }
 
-impl<'a, N: BitcoinNetwork> TryFrom<&'a [ChildIndex]> for BitcoinDerivationPath<N> {
+impl<'a, N: HdkNetwork> TryFrom<&'a [ChildIndex]> for HdkDerivationPath<N> {
     type Error = DerivationPathError;
 
     fn try_from(path: &'a [ChildIndex]) -> Result<Self, Self::Error> {
@@ -115,13 +115,13 @@ impl<'a, N: BitcoinNetwork> TryFrom<&'a [ChildIndex]> for BitcoinDerivationPath<
     }
 }
 
-impl<N: BitcoinNetwork> fmt::Debug for BitcoinDerivationPath<N> {
+impl<N: HdkNetwork> fmt::Debug for HdkDerivationPath<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(&self, f)
     }
 }
 
-impl<N: BitcoinNetwork> fmt::Display for BitcoinDerivationPath<N> {
+impl<N: HdkNetwork> fmt::Display for HdkDerivationPath<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.to_vec() {
             Ok(path) => {
@@ -150,41 +150,41 @@ mod tests {
         type N = Mainnet;
 
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP32(vec![], PhantomData),
-            BitcoinDerivationPath::<N>::from_str("m").unwrap()
+            HdkDerivationPath::<N>::BIP32(vec![], PhantomData),
+            HdkDerivationPath::<N>::from_str("m").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP32(vec![ChildIndex::Normal(0)], PhantomData),
-            BitcoinDerivationPath::<N>::from_str("m/0").unwrap()
+            HdkDerivationPath::<N>::BIP32(vec![ChildIndex::Normal(0)], PhantomData),
+            HdkDerivationPath::<N>::from_str("m/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP32(vec![ChildIndex::Hardened(0)], PhantomData),
-            BitcoinDerivationPath::<N>::from_str("m/0'").unwrap()
+            HdkDerivationPath::<N>::BIP32(vec![ChildIndex::Hardened(0)], PhantomData),
+            HdkDerivationPath::<N>::from_str("m/0'").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP32(vec![ChildIndex::Normal(0), ChildIndex::Normal(0)], PhantomData),
-            BitcoinDerivationPath::<N>::from_str("m/0/0").unwrap()
+            HdkDerivationPath::<N>::BIP32(vec![ChildIndex::Normal(0), ChildIndex::Normal(0)], PhantomData),
+            HdkDerivationPath::<N>::from_str("m/0/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP32(vec![ChildIndex::Normal(0), ChildIndex::Hardened(0)], PhantomData),
-            BitcoinDerivationPath::<N>::from_str("m/0/0'").unwrap()
+            HdkDerivationPath::<N>::BIP32(vec![ChildIndex::Normal(0), ChildIndex::Hardened(0)], PhantomData),
+            HdkDerivationPath::<N>::from_str("m/0/0'").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP32(
+            HdkDerivationPath::<N>::BIP32(
                 vec![ChildIndex::Normal(0), ChildIndex::Normal(0), ChildIndex::Normal(0)],
                 PhantomData
             ),
-            BitcoinDerivationPath::<N>::from_str("m/0/0/0").unwrap()
+            HdkDerivationPath::<N>::from_str("m/0/0/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP32(
+            HdkDerivationPath::<N>::BIP32(
                 vec![ChildIndex::Normal(0), ChildIndex::Normal(0), ChildIndex::Hardened(0)],
                 PhantomData
             ),
-            BitcoinDerivationPath::<N>::from_str("m/0/0/0'").unwrap()
+            HdkDerivationPath::<N>::from_str("m/0/0/0'").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP32(
+            HdkDerivationPath::<N>::BIP32(
                 vec![
                     ChildIndex::Normal(0),
                     ChildIndex::Normal(0),
@@ -193,10 +193,10 @@ mod tests {
                 ],
                 PhantomData
             ),
-            BitcoinDerivationPath::<N>::from_str("m/0/0/0/0").unwrap()
+            HdkDerivationPath::<N>::from_str("m/0/0/0/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP32(
+            HdkDerivationPath::<N>::BIP32(
                 vec![
                     ChildIndex::Normal(0),
                     ChildIndex::Normal(0),
@@ -205,10 +205,10 @@ mod tests {
                 ],
                 PhantomData
             ),
-            BitcoinDerivationPath::<N>::from_str("m/0/0/0/0'").unwrap()
+            HdkDerivationPath::<N>::from_str("m/0/0/0/0'").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP32(
+            HdkDerivationPath::<N>::BIP32(
                 vec![
                     ChildIndex::Normal(0),
                     ChildIndex::Normal(0),
@@ -218,10 +218,10 @@ mod tests {
                 ],
                 PhantomData
             ),
-            BitcoinDerivationPath::<N>::from_str("m/0/0/0/0/0").unwrap()
+            HdkDerivationPath::<N>::from_str("m/0/0/0/0/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP32(
+            HdkDerivationPath::<N>::BIP32(
                 vec![
                     ChildIndex::Normal(0),
                     ChildIndex::Normal(0),
@@ -231,7 +231,7 @@ mod tests {
                 ],
                 PhantomData
             ),
-            BitcoinDerivationPath::<N>::from_str("m/0/0/0/0/0'").unwrap()
+            HdkDerivationPath::<N>::from_str("m/0/0/0/0/0'").unwrap()
         );
     }
 
@@ -242,36 +242,36 @@ mod tests {
         type N = Mainnet;
 
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/0'/0'/0/0").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/44'/0'/0'/0/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/0'/0'/0/1").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/44'/0'/0'/0/1").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/0'/0'/1/0").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/44'/0'/0'/1/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/0'/0'/1/1").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/44'/0'/0'/1/1").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/0'/1'/0/0").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/44'/0'/1'/0/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/0'/1'/0/1").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/44'/0'/1'/0/1").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/0'/1'/1/0").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/44'/0'/1'/1/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/0'/1'/1/1").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/44'/0'/1'/1/1").unwrap()
         );
     }
 
@@ -282,36 +282,36 @@ mod tests {
         type N = Testnet;
 
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/1'/0'/0/0").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/44'/1'/0'/0/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/1'/0'/0/1").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/44'/1'/0'/0/1").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/1'/0'/1/0").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/44'/1'/0'/1/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/1'/0'/1/1").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/44'/1'/0'/1/1").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/1'/1'/0/0").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/44'/1'/1'/0/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/1'/1'/0/1").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/44'/1'/1'/0/1").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/1'/1'/1/0").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/44'/1'/1'/1/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/44'/1'/1'/1/1").unwrap()
+            HdkDerivationPath::<N>::BIP44([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/44'/1'/1'/1/1").unwrap()
         );
     }
 
@@ -322,36 +322,36 @@ mod tests {
         type N = Mainnet;
 
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/0'/0'/0/0").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/49'/0'/0'/0/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/0'/0'/0/1").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/49'/0'/0'/0/1").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/0'/0'/1/0").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/49'/0'/0'/1/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/0'/0'/1/1").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/49'/0'/0'/1/1").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/0'/1'/0/0").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/49'/0'/1'/0/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/0'/1'/0/1").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/49'/0'/1'/0/1").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/0'/1'/1/0").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/49'/0'/1'/1/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/0'/1'/1/1").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/49'/0'/1'/1/1").unwrap()
         );
     }
 
@@ -362,36 +362,36 @@ mod tests {
         type N = Testnet;
 
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/1'/0'/0/0").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/49'/1'/0'/0/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/1'/0'/0/1").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/49'/1'/0'/0/1").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/1'/0'/1/0").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/49'/1'/0'/1/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/1'/0'/1/1").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(0), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/49'/1'/0'/1/1").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/1'/1'/0/0").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/49'/1'/1'/0/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/1'/1'/0/1").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(0), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/49'/1'/1'/0/1").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/1'/1'/1/0").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(0)]),
+            HdkDerivationPath::<N>::from_str("m/49'/1'/1'/1/0").unwrap()
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
-            BitcoinDerivationPath::<N>::from_str("m/49'/1'/1'/1/1").unwrap()
+            HdkDerivationPath::<N>::BIP49([ChildIndex::Hardened(1), ChildIndex::Normal(1), ChildIndex::Normal(1)]),
+            HdkDerivationPath::<N>::from_str("m/49'/1'/1'/1/1").unwrap()
         );
     }
 
@@ -402,21 +402,21 @@ mod tests {
         type N = Mainnet;
 
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m"),
+            HdkDerivationPath::<N>::from_str("m"),
             Ok(vec![].try_into().unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0"),
+            HdkDerivationPath::<N>::from_str("m/0"),
             Ok(vec![ChildIndex::normal(0).unwrap()].try_into().unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0/1"),
+            HdkDerivationPath::<N>::from_str("m/0/1"),
             Ok(vec![ChildIndex::normal(0).unwrap(), ChildIndex::normal(1).unwrap()]
                 .try_into()
                 .unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0/1/2"),
+            HdkDerivationPath::<N>::from_str("m/0/1/2"),
             Ok(vec![
                 ChildIndex::normal(0).unwrap(),
                 ChildIndex::normal(1).unwrap(),
@@ -426,7 +426,7 @@ mod tests {
             .unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0/1/2/3"),
+            HdkDerivationPath::<N>::from_str("m/0/1/2/3"),
             Ok(vec![
                 ChildIndex::normal(0).unwrap(),
                 ChildIndex::normal(1).unwrap(),
@@ -438,21 +438,21 @@ mod tests {
         );
 
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m"),
+            HdkDerivationPath::<N>::from_str("m"),
             Ok(vec![].try_into().unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0'"),
+            HdkDerivationPath::<N>::from_str("m/0'"),
             Ok(vec![ChildIndex::hardened(0).unwrap()].try_into().unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0'/1"),
+            HdkDerivationPath::<N>::from_str("m/0'/1"),
             Ok(vec![ChildIndex::hardened(0).unwrap(), ChildIndex::normal(1).unwrap()]
                 .try_into()
                 .unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0'/1/2'"),
+            HdkDerivationPath::<N>::from_str("m/0'/1/2'"),
             Ok(vec![
                 ChildIndex::hardened(0).unwrap(),
                 ChildIndex::normal(1).unwrap(),
@@ -462,7 +462,7 @@ mod tests {
             .unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0'/1/2'/3"),
+            HdkDerivationPath::<N>::from_str("m/0'/1/2'/3"),
             Ok(vec![
                 ChildIndex::hardened(0).unwrap(),
                 ChildIndex::normal(1).unwrap(),
@@ -473,7 +473,7 @@ mod tests {
             .unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0'/1/2'/3/4'"),
+            HdkDerivationPath::<N>::from_str("m/0'/1/2'/3/4'"),
             Ok(vec![
                 ChildIndex::hardened(0).unwrap(),
                 ChildIndex::normal(1).unwrap(),
@@ -486,21 +486,21 @@ mod tests {
         );
 
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m"),
+            HdkDerivationPath::<N>::from_str("m"),
             Ok(vec![].try_into().unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0h"),
+            HdkDerivationPath::<N>::from_str("m/0h"),
             Ok(vec![ChildIndex::hardened(0).unwrap()].try_into().unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0h/1'"),
+            HdkDerivationPath::<N>::from_str("m/0h/1'"),
             Ok(vec![ChildIndex::hardened(0).unwrap(), ChildIndex::hardened(1).unwrap()]
                 .try_into()
                 .unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0'/1h/2'"),
+            HdkDerivationPath::<N>::from_str("m/0'/1h/2'"),
             Ok(vec![
                 ChildIndex::hardened(0).unwrap(),
                 ChildIndex::hardened(1).unwrap(),
@@ -510,7 +510,7 @@ mod tests {
             .unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0h/1'/2h/3'"),
+            HdkDerivationPath::<N>::from_str("m/0h/1'/2h/3'"),
             Ok(vec![
                 ChildIndex::hardened(0).unwrap(),
                 ChildIndex::hardened(1).unwrap(),
@@ -521,7 +521,7 @@ mod tests {
             .unwrap())
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0'/1h/2'/3h/4'"),
+            HdkDerivationPath::<N>::from_str("m/0'/1h/2'/3h/4'"),
             Ok(vec![
                 ChildIndex::hardened(0).unwrap(),
                 ChildIndex::hardened(1).unwrap(),
@@ -541,54 +541,54 @@ mod tests {
         type N = Mainnet;
 
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("n"),
+            HdkDerivationPath::<N>::from_str("n"),
             Err(DerivationPathError::InvalidDerivationPath("n".into()))
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("n/0"),
+            HdkDerivationPath::<N>::from_str("n/0"),
             Err(DerivationPathError::InvalidDerivationPath("n/0".into()))
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("n/0/0"),
+            HdkDerivationPath::<N>::from_str("n/0/0"),
             Err(DerivationPathError::InvalidDerivationPath("n/0/0".into()))
         );
 
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("1"),
+            HdkDerivationPath::<N>::from_str("1"),
             Err(DerivationPathError::InvalidDerivationPath("1".into()))
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("1/0"),
+            HdkDerivationPath::<N>::from_str("1/0"),
             Err(DerivationPathError::InvalidDerivationPath("1/0".into()))
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("1/0/0"),
+            HdkDerivationPath::<N>::from_str("1/0/0"),
             Err(DerivationPathError::InvalidDerivationPath("1/0/0".into()))
         );
 
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0x"),
+            HdkDerivationPath::<N>::from_str("m/0x"),
             Err(DerivationPathError::InvalidChildNumberFormat)
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0x0"),
+            HdkDerivationPath::<N>::from_str("m/0x0"),
             Err(DerivationPathError::InvalidChildNumberFormat)
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/0x00"),
+            HdkDerivationPath::<N>::from_str("m/0x00"),
             Err(DerivationPathError::InvalidChildNumberFormat)
         );
 
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("0/m"),
+            HdkDerivationPath::<N>::from_str("0/m"),
             Err(DerivationPathError::InvalidDerivationPath("0/m".into()))
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m//0"),
+            HdkDerivationPath::<N>::from_str("m//0"),
             Err(DerivationPathError::InvalidChildNumberFormat)
         );
         assert_eq!(
-            BitcoinDerivationPath::<N>::from_str("m/2147483648"),
+            HdkDerivationPath::<N>::from_str("m/2147483648"),
             Err(DerivationPathError::InvalidChildNumber(2147483648))
         );
     }

@@ -1,4 +1,4 @@
-use crate::wordlist::BitcoinWordlist;
+use crate::wordlist::HdkWordlist;
 use wagyu_model::{bip39::SPANISH, wordlist::Wordlist};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -6,7 +6,7 @@ pub struct Spanish;
 
 impl Wordlist for Spanish {}
 
-impl BitcoinWordlist for Spanish {
+impl HdkWordlist for Spanish {
     /// The wordlist in original form.
     const WORDLIST: &'static str = SPANISH;
 }

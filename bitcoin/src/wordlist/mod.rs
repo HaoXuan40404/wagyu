@@ -26,7 +26,7 @@ pub mod spanish;
 pub use self::spanish::*;
 
 /// The interface for a Bitcoin wordlist.
-pub trait BitcoinWordlist: Wordlist {
+pub trait HdkWordlist: Wordlist {
     /// The wordlist in original form.
     const WORDLIST: &'static str;
 

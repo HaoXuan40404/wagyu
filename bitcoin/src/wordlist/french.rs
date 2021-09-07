@@ -1,4 +1,4 @@
-use crate::wordlist::BitcoinWordlist;
+use crate::wordlist::HdkWordlist;
 use wagyu_model::{bip39::FRENCH, wordlist::Wordlist};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -6,7 +6,7 @@ pub struct French;
 
 impl Wordlist for French {}
 
-impl BitcoinWordlist for French {
+impl HdkWordlist for French {
     /// The wordlist in original form.
     const WORDLIST: &'static str = FRENCH;
 }

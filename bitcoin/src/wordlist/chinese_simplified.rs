@@ -1,4 +1,4 @@
-use crate::wordlist::BitcoinWordlist;
+use crate::wordlist::HdkWordlist;
 use wagyu_model::{bip39::CHINESE_SIMPLIFIED, wordlist::Wordlist};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -6,7 +6,7 @@ pub struct ChineseSimplified;
 
 impl Wordlist for ChineseSimplified {}
 
-impl BitcoinWordlist for ChineseSimplified {
+impl HdkWordlist for ChineseSimplified {
     /// The wordlist in original form.
     const WORDLIST: &'static str = CHINESE_SIMPLIFIED;
 }
